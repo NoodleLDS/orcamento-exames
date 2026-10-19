@@ -352,12 +352,45 @@ function Simulador({ pacientes, precos }: { pacientes: ReturnType<typeof agrupar
     ['Quando o próximo não cabe', regras.modoOrcamento === 'parar' ? 'para a fila ali' : 'pula e tenta os seguintes'],
   ];
 
-  const lista = ver === 'contemplados' ? r.contemplados : r.naoContemplados;
+  const semOrcamento = regras.orcamento === null || r.precosFaltando.length > 0;
+  const lista = semOrcamento ? r.naoContemplados : ver === 'contemplados' ? r.contemplados : r.naoContemplados;
 
   return (
     <div className="sim">
       <aside className="card controles">
         <h2>Regras</h2>
+
+        <fieldset className="campo-orc">
+          <legend>Orçamento disponível</legend>
+          <div className="orc">
+            <span>R$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="ex.: 1.000.000"
+              value={orcTexto}
+              onChange={(e) => {
+                setOrcTexto(e.target.value);
+                set('orcamento', lerValor(e.target.value));
+              }}
+              onBlur={() => regras.orcamento !== null && setOrcTexto(valorParaCampo(regras.orcamento))}
+            />
+          </div>
+          {orcTexto.trim() && regras.orcamento === null ? (
+            <p className="alerta pequeno">Não entendi esse valor. Use, por exemplo, 1.000.000 ou 1 milhão.</p>
+          ) : regras.orcamento === null ? (
+            <p className="ajuda">Digite o valor para ver quem é contemplado.</p>
+          ) : (
+            <p className="ajuda">= {reais(regras.orcamento)}</p>
+          )}
+          <label className="linha">
+            Quando o próximo da fila não cabe:
+            <select value={regras.modoOrcamento} onChange={(e) => set('modoOrcamento', e.target.value as Regras['modoOrcamento'])}>
+              <option value="parar">para ali (respeita a ordem)</option>
+              <option value="pular">pula e tenta os seguintes</option>
+            </select>
+          </label>
+        </fieldset>
 
         <fieldset>
           <legend>
@@ -445,30 +478,6 @@ function Simulador({ pacientes, precos }: { pacientes: ReturnType<typeof agrupar
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend>Orçamento</legend>
-          <div className="orc">
-            <span>R$</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="1.000.000,00"
-              value={orcTexto}
-              onChange={(e) => {
-                setOrcTexto(e.target.value);
-                set('orcamento', lerValor(e.target.value));
-              }}
-              onBlur={() => setOrcTexto(valorParaCampo(regras.orcamento))}
-            />
-          </div>
-          <label className="linha">
-            Quando o próximo da fila não cabe:
-            <select value={regras.modoOrcamento} onChange={(e) => set('modoOrcamento', e.target.value as Regras['modoOrcamento'])}>
-              <option value="parar">para ali (respeita a ordem)</option>
-              <option value="pular">pula e tenta os seguintes</option>
-            </select>
-          </label>
-        </fieldset>
       </aside>
 
       <section className="resultado">
@@ -486,8 +495,8 @@ function Simulador({ pacientes, precos }: { pacientes: ReturnType<typeof agrupar
           </div>
           <div className="kpi">
             <span>Elegíveis não contemplados</span>
-            <strong>{inteiro(r.naoContemplados.length)}</strong>
-            <small>faltaria {reais(r.custoNaoContemplados)}</small>
+            <strong>{semOrcamento ? '—' : inteiro(r.naoContemplados.length)}</strong>
+            <small>{semOrcamento ? `custo de todos os elegíveis: ${reais(r.custoNaoContemplados)}` : `faltaria ${reais(r.custoNaoContemplados)}`}</small>
           </div>
           <div className="kpi">
             <span>Elegíveis</span>
@@ -501,10 +510,16 @@ function Simulador({ pacientes, precos }: { pacientes: ReturnType<typeof agrupar
 
         <div className="card">
           <div className="lista-topo">
-            <div className="seg">
-              <button className={ver === 'contemplados' ? 'ativa' : ''} onClick={() => setVer('contemplados')}>Contemplados ({inteiro(r.contemplados.length)})</button>
-              <button className={ver === 'nao' ? 'ativa' : ''} onClick={() => setVer('nao')}>Não contemplados ({inteiro(r.naoContemplados.length)})</button>
-            </div>
+            {semOrcamento ? (
+              <div className="seg">
+                <button className="ativa">Elegíveis, em ordem de prioridade ({inteiro(r.elegiveis)})</button>
+              </div>
+            ) : (
+              <div className="seg">
+                <button className={ver === 'contemplados' ? 'ativa' : ''} onClick={() => setVer('contemplados')}>Contemplados ({inteiro(r.contemplados.length)})</button>
+                <button className={ver === 'nao' ? 'ativa' : ''} onClick={() => setVer('nao')}>Não contemplados ({inteiro(r.naoContemplados.length)})</button>
+              </div>
+            )}
             <button className="primario" onClick={() => exportarExcel(r, regras, descricao())} disabled={!r.elegiveis}>Baixar Excel</button>
           </div>
           <table className="tabela compacta">

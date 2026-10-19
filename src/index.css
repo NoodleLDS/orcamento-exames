@@ -116,7 +116,9 @@ input[type='number'], input[type='date'], input[type='text'], select, input.prec
 .mini-add { align-self: flex-start; padding: 4px 10px; font-size: 0.85rem; }
 .orc { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .orc span { font-weight: 700; color: var(--muted); }
-.orc input { font-size: 1.25rem; font-weight: 700; padding: 8px 10px; width: 100%; }
+.orc input { font-size: 1.25rem; font-weight: 700; padding: 8px 10px; width: 100%; border: 2px solid var(--accent) !important; }
+.campo-orc { background: var(--accent-soft); margin: 0 -20px; padding: 12px 20px; border-top: 0; }
+.alerta.pequeno { font-size: 0.85rem; padding: 6px 10px; margin: 8px 0; }
 
 .funil { color: var(--muted); font-size: 0.88rem; margin: -6px 0 14px; }
 .lista-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }

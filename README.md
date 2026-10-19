@@ -22,7 +22,11 @@ Planning a purchase means answering questions the reports can't answer on their 
 - **Adjustable rules.** Age range, queue-entry date range, requested-date cutoff, priority age bands, sort order (by wait time or age, in either direction), and budget behavior when the next patient doesn't fit.
 - **Live results.** Patients served, budget used, the shortfall or surplus against the cost of serving everyone eligible, plus charts by age band, by month of queue entry, and by test.
 - **Overview tab.** Patients and tests waiting per test type, and the cost to clear each queue.
-- **Excel export.** Scenario parameters, the served list, and the not-served list.
+- **Plain-language scenario summary.** One sentence states the budget, rules and outcome, and is reused in the export and the printout.
+- **Scenario comparison.** Save up to four scenarios and compare them side by side.
+- **Presentation mode.** Hides names and record numbers from the screen for meetings. Exports made in this mode leave out names and health card numbers.
+- **Excel export.** Scenario parameters, the **purchase list** (quantity × unit price per test, i.e. the order to place), the served list, and the not-served list.
+- **Printable summary.** A two-page A4 report with no patient data: the scenario, indicators, charts and the purchase list.
 - **Consolidated base file.** Save every parsed report as one `.xlsx` that reopens in seconds instead of re-reading thousands of PDF pages.
 - **Editable price table.** Defaults to the CISALP consortium contract prices. Tests outside that contract use 2× the SUS reference value (SIGTAP).
 

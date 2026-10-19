@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Relatorio } from './core/parseRelatorio';
 import { agruparPacientes, type Precos } from './core/pacientes';
-import { painel, REGRAS_PADRAO, simular, type Criterio, type Regras } from './core/simulacao';
+import { painel, REGRAS_PADRAO, type Regras } from './core/simulacao';
 import { ORIGEM_PRECO, PRECOS_CISALP, QTD_TABELA_CISALP } from './core/precos';
 import { lerRelatorioPdf } from './lib/lerPdf';
-import { exportarExcel } from './lib/exportar';
 import { baixarBase, lerBase } from './lib/base';
-import { Graficos } from './ui/Graficos';
 import { Num } from './ui/Num';
+import { Simulador, type Cenario } from './ui/Simulador';
 import { dataBR, inteiro, lerValor, pct, reais, valorParaCampo } from './lib/formato';
 import './App.css';
 
@@ -46,6 +45,19 @@ export default function App() {
 
   const pacientes = useMemo(() => agruparPacientes(relatorios.flatMap((r) => r.linhas)), [relatorios]);
   const temDados = pacientes.length > 0;
+  const exames = useMemo(() => painel(pacientes, {}).map((l) => l.exame), [pacientes]);
+  const [regras, setRegras] = useState<Regras>({ ...REGRAS_PADRAO, examesMarcados: [] });
+  const [conhecidos, setConhecidos] = useState<string[]>([]);
+  const [cenarios, setCenarios] = useState<Cenario[]>([]);
+  const [apresentacao, setApresentacao] = useState(false);
+  // exames que aparecem num novo carregamento entram marcados
+  useEffect(() => {
+    const novos = exames.filter((e) => !conhecidos.includes(e));
+    if (novos.length) {
+      setRegras((r) => ({ ...r, examesMarcados: [...r.examesMarcados.filter((e) => exames.includes(e)), ...novos] }));
+      setConhecidos(exames);
+    }
+  }, [exames, conhecidos]);
 
   return (
     <div className="app">
@@ -80,12 +92,27 @@ export default function App() {
             </button>
           ))}
         </nav>
+        <label className={`interruptor ${apresentacao ? 'on' : ''}`} title="Esconde nomes e prontuários da tela, para projetar em reunião">
+          <input type="checkbox" checked={apresentacao} onChange={(e) => setApresentacao(e.target.checked)} />
+          <span className="trilho"><span /></span>
+          Modo apresentação
+        </label>
        </div>
       </header>
       <main key={aba} className="entra">
         {aba === 'carregar' && <Carregar relatorios={relatorios} setRelatorios={setRelatorios} onPronto={() => setAba('panorama')} />}
         {aba === 'panorama' && temDados && <Panorama relatorios={relatorios} pacientes={pacientes} precos={precos} />}
-        {aba === 'simulador' && temDados && <Simulador pacientes={pacientes} precos={precos} />}
+        {aba === 'simulador' && temDados && (
+          <Simulador
+            pacientes={pacientes}
+            precos={precos}
+            regras={regras}
+            setRegras={setRegras}
+            cenarios={cenarios}
+            setCenarios={setCenarios}
+            apresentacao={apresentacao}
+          />
+        )}
         {aba === 'valores' && <Valores precos={precos} setPrecos={setPrecos} exames={[...new Set(pacientes.flatMap((p) => p.exames))]} />}
       </main>
       <footer>
@@ -348,265 +375,6 @@ function Panorama({ relatorios, pacientes, precos }: { relatorios: Relatorio[]; 
         </section>
       )}
     </>
-  );
-}
-
-/* ------------------------------------------------------------------ Simulador */
-
-function NumeroCampo({ valor, onChange, placeholder }: { valor: number | null; onChange: (v: number | null) => void; placeholder?: string }) {
-  return (
-    <input
-      type="number"
-      inputMode="numeric"
-      value={valor ?? ''}
-      placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
-    />
-  );
-}
-
-function Simulador({ pacientes, precos }: { pacientes: ReturnType<typeof agruparPacientes>; precos: Precos }) {
-  const contagem = useMemo(() => painel(pacientes, {}), [pacientes]);
-  const [regras, setRegras] = useState<Regras>(() => ({ ...REGRAS_PADRAO, examesMarcados: contagem.map((c) => c.exame) }));
-  const [orcTexto, setOrcTexto] = useState('');
-  const [ver, setVer] = useState<'contemplados' | 'nao'>('contemplados');
-  const set = <K extends keyof Regras>(k: K, v: Regras[K]) => setRegras((r) => ({ ...r, [k]: v }));
-  const marcados = new Set(regras.examesMarcados);
-  const toggle = (e: string) => set('examesMarcados', marcados.has(e) ? regras.examesMarcados.filter((x) => x !== e) : [...regras.examesMarcados, e]);
-
-  const r = useMemo(() => simular(pacientes, precos, regras), [pacientes, precos, regras]);
-
-  const nomeCrit = (c: Criterio) => (c === 'data' ? 'Data de inclusão' : 'Idade');
-  const descricao = (): [string, string][] => [
-    ['Exames marcados', regras.examesMarcados.join(', ')],
-    ['Exigir pedido completo', regras.exigirPedidoCompleto ? 'Sim' : 'Não'],
-    ['Idade', `${regras.idadeMin ?? 'qualquer'} a ${regras.idadeMax ?? 'qualquer'}`],
-    ['Inclusão na fila', `${regras.inclusaoDe ? dataBR(regras.inclusaoDe) : 'início'} a ${regras.inclusaoAte ? dataBR(regras.inclusaoAte) : 'hoje'}`],
-    ['Data solicitada até', regras.solicitadaAte ? dataBR(regras.solicitadaAte) : 'sem limite'],
-    ['Faixas prioritárias', regras.faixasPrioritarias.map((f) => `${f.min}–${f.max}`).join(', ') || 'nenhuma'],
-    ['Prioridade', `${nomeCrit(regras.ordem[0])}, depois ${nomeCrit(regras.ordem[1])}`],
-    ['Data de inclusão', regras.dataMaisAntigosPrimeiro ? 'mais antigos primeiro' : 'mais recentes primeiro'],
-    ['Idade', regras.idadeMaisVelhosPrimeiro ? 'mais velhos primeiro' : 'mais novos primeiro'],
-    ['Orçamento', reais(regras.orcamento)],
-    ['Quando o próximo não cabe', regras.modoOrcamento === 'parar' ? 'para a fila ali' : 'pula e tenta os seguintes'],
-  ];
-
-  const semOrcamento = regras.orcamento === null || r.precosFaltando.length > 0;
-  const lista = semOrcamento ? r.naoContemplados : ver === 'contemplados' ? r.contemplados : r.naoContemplados;
-
-  return (
-    <div className="sim">
-      <aside className="card controles">
-        <h2>Regras</h2>
-
-        <fieldset className="campo-orc">
-          <legend>Orçamento disponível</legend>
-          <div className="orc">
-            <span>R$</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="ex.: 1.000.000"
-              value={orcTexto}
-              onChange={(e) => {
-                setOrcTexto(e.target.value);
-                set('orcamento', lerValor(e.target.value));
-              }}
-              onBlur={() => regras.orcamento !== null && setOrcTexto(valorParaCampo(regras.orcamento))}
-            />
-          </div>
-          {orcTexto.trim() && regras.orcamento === null ? (
-            <p className="alerta pequeno">Não entendi esse valor. Use, por exemplo, 1.000.000 ou 1 milhão.</p>
-          ) : regras.orcamento === null ? (
-            <p className="ajuda">Digite o valor para ver quem é contemplado.</p>
-          ) : (
-            <p className="ajuda">= {reais(regras.orcamento)}</p>
-          )}
-          <label className="linha">
-            Quando o próximo da fila não cabe:
-            <select value={regras.modoOrcamento} onChange={(e) => set('modoOrcamento', e.target.value as Regras['modoOrcamento'])}>
-              <option value="parar">para ali (respeita a ordem)</option>
-              <option value="pular">pula e tenta os seguintes</option>
-            </select>
-          </label>
-        </fieldset>
-
-        <fieldset>
-          <legend>
-            Exames do orçamento
-            <span className="mini">
-              <button onClick={() => set('examesMarcados', contagem.map((c) => c.exame))}>todos</button>
-              <button onClick={() => set('examesMarcados', [])}>nenhum</button>
-            </span>
-          </legend>
-          <div className="checks">
-            {contagem.map((c) => (
-              <label key={c.exame} className={marcados.has(c.exame) ? 'on' : ''}>
-                <input type="checkbox" checked={marcados.has(c.exame)} onChange={() => toggle(c.exame)} />
-                <span>{c.exame}</span>
-                <small>{inteiro(c.pacientes)}</small>
-              </label>
-            ))}
-          </div>
-          <p className="ajuda">Entra quem tem <strong>todos</strong> os seus exames dentro dos marcados.</p>
-          <label className="linha">
-            <input type="checkbox" checked={regras.exigirPedidoCompleto} onChange={(e) => set('exigirPedidoCompleto', e.target.checked)} />
-            Exigir pedido completo (sem procedimentos fora das listas carregadas)
-          </label>
-        </fieldset>
-
-        <fieldset>
-          <legend>Filtros</legend>
-          <div className="grade2">
-            <label>Idade de<NumeroCampo valor={regras.idadeMin} onChange={(v) => set('idadeMin', v)} placeholder="0" /></label>
-            <label>até<NumeroCampo valor={regras.idadeMax} onChange={(v) => set('idadeMax', v)} placeholder="120" /></label>
-            <label>Inclusão de<input type="date" value={regras.inclusaoDe ?? ''} onChange={(e) => set('inclusaoDe', e.target.value || null)} /></label>
-            <label>até<input type="date" value={regras.inclusaoAte ?? ''} onChange={(e) => set('inclusaoAte', e.target.value || null)} /></label>
-            <label className="span2">
-              Data solicitada até
-              <input type="date" value={regras.solicitadaAte ?? ''} onChange={(e) => set('solicitadaAte', e.target.value || null)} />
-              <small>Alguns pedidos têm data solicitada no futuro (exame pedido para mais adiante).</small>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Prioridade</legend>
-          <label className="linha">
-            Primeiro por
-            <select
-              value={regras.ordem[0]}
-              onChange={(e) => {
-                const c = e.target.value as Criterio;
-                set('ordem', [c, c === 'data' ? 'idade' : 'data']);
-              }}
-            >
-              <option value="data">data de inclusão</option>
-              <option value="idade">idade</option>
-            </select>
-            depois por {regras.ordem[1] === 'data' ? 'data de inclusão' : 'idade'}
-          </label>
-          <label className="linha">
-            Data:
-            <select value={regras.dataMaisAntigosPrimeiro ? 'a' : 'r'} onChange={(e) => set('dataMaisAntigosPrimeiro', e.target.value === 'a')}>
-              <option value="a">mais antigos na fila primeiro</option>
-              <option value="r">mais recentes primeiro</option>
-            </select>
-          </label>
-          <label className="linha">
-            Idade:
-            <select value={regras.idadeMaisVelhosPrimeiro ? 'v' : 'n'} onChange={(e) => set('idadeMaisVelhosPrimeiro', e.target.value === 'v')}>
-              <option value="v">mais velhos primeiro</option>
-              <option value="n">mais novos primeiro</option>
-            </select>
-          </label>
-          <div className="faixas">
-            <span>Faixas prioritárias (em ordem)</span>
-            {regras.faixasPrioritarias.map((f, i) => (
-              <div key={i} className="faixa">
-                <b>{i + 1}º</b>
-                <NumeroCampo valor={f.min} onChange={(v) => set('faixasPrioritarias', regras.faixasPrioritarias.map((x, j) => (j === i ? { ...x, min: v ?? 0 } : x)))} />
-                a
-                <NumeroCampo valor={f.max} onChange={(v) => set('faixasPrioritarias', regras.faixasPrioritarias.map((x, j) => (j === i ? { ...x, max: v ?? 120 } : x)))} />
-                anos
-                <button onClick={() => set('faixasPrioritarias', regras.faixasPrioritarias.filter((_, j) => j !== i))}>×</button>
-              </div>
-            ))}
-            <button className="mini-add" onClick={() => set('faixasPrioritarias', [...regras.faixasPrioritarias, { min: 60, max: 120 }])}>+ adicionar faixa</button>
-            {regras.faixasPrioritarias.length > 0 && <small>Quem não está em nenhuma faixa vem depois de todas.</small>}
-          </div>
-        </fieldset>
-
-      </aside>
-
-      <section className="resultado">
-        {r.precosFaltando.length > 0 && <p className="alerta">Sem valor para: {r.precosFaltando.join(', ')}. Preencha na aba Valores.</p>}
-        <div className="kpis">
-          <div className="kpi destaque">
-            <span>Contemplados</span>
-            <strong>{semOrcamento ? '—' : <Num valor={r.contemplados.length} formato={inteiro} />}</strong>
-            <small>
-              {semOrcamento ? 'digite o orçamento' : `${reais(r.custoContemplados)} · ${pct(r.custoContemplados, regras.orcamento ?? 0)} do orçamento`}
-            </small>
-          </div>
-          {(() => {
-            const saldo = semOrcamento ? null : (regras.orcamento as number) - (r.custoContemplados + r.custoNaoContemplados);
-            const falta = saldo !== null && saldo < 0;
-            return (
-              <div className={`kpi ${falta ? 'kpi-falta' : saldo !== null ? 'kpi-sobra' : ''}`}>
-                <span>{saldo === null ? 'Saldo' : falta ? 'Falta para atender todos os elegíveis' : 'Sobra após atender todos os elegíveis'}</span>
-                <strong>{saldo === null ? '—' : <>{falta ? '− ' : ''}<Num valor={Math.abs(saldo)} formato={reais} /></>}</strong>
-                <small>{saldo === null ? 'orçamento − custo dos elegíveis' : `orçamento ${reais(regras.orcamento)} − custo ${reais(r.custoContemplados + r.custoNaoContemplados)}`}</small>
-              </div>
-            );
-          })()}
-          <div className="kpi">
-            <span>Elegíveis não contemplados</span>
-            <strong>{semOrcamento ? '—' : <Num valor={r.naoContemplados.length} formato={inteiro} />}</strong>
-            <small>
-              {semOrcamento
-                ? `custo de todos os elegíveis: ${reais(r.custoNaoContemplados)}`
-                : r.naoContemplados.length
-                  ? `custariam ${reais(r.custoNaoContemplados)}`
-                  : `todos atendidos · sobra não usada ${reais(r.sobra)}`}
-            </small>
-          </div>
-          <div className="kpi">
-            <span>Elegíveis</span>
-            <strong><Num valor={r.elegiveis} formato={inteiro} /></strong>
-            <small>de {inteiro(pacientes.length)} na fila</small>
-          </div>
-        </div>
-        <p className="funil">
-          {inteiro(r.foraPorExame)} ficam de fora porque têm exame não marcado · {inteiro(r.foraPorFiltro)} pelos filtros
-        </p>
-
-        <Graficos r={r} orcamento={regras.orcamento} />
-
-        <div className="card">
-          <div className="lista-topo">
-            {semOrcamento ? (
-              <div className="seg">
-                <button className="ativa">Elegíveis, em ordem de prioridade ({inteiro(r.elegiveis)})</button>
-              </div>
-            ) : (
-              <div className="seg">
-                <button className={ver === 'contemplados' ? 'ativa' : ''} onClick={() => setVer('contemplados')}>Contemplados ({inteiro(r.contemplados.length)})</button>
-                <button className={ver === 'nao' ? 'ativa' : ''} onClick={() => setVer('nao')}>Não contemplados ({inteiro(r.naoContemplados.length)})</button>
-              </div>
-            )}
-            <button className="primario" onClick={() => exportarExcel(r, regras, descricao())} disabled={!r.elegiveis}>Baixar Excel</button>
-          </div>
-          <table className="tabela compacta">
-            <thead>
-              <tr>
-                <th className="n">#</th>
-                <th>Prontuário</th>
-                <th>Nome</th>
-                <th className="n">Idade</th>
-                <th>Inclusão</th>
-                <th>Exames</th>
-                <th className="n">Custo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.slice(0, 200).map((i) => (
-                <tr key={i.paciente.prontuario}>
-                  <td className="n muted">{i.posicao}</td>
-                  <td>{i.paciente.prontuario}</td>
-                  <td>{i.paciente.nome}</td>
-                  <td className="n">{i.paciente.idadeTexto}</td>
-                  <td>{dataBR(i.paciente.dataInclusao)}</td>
-                  <td className="exames">{i.paciente.exames.join(', ')}</td>
-                  <td className="n">{reais(i.custo)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {lista.length > 200 && <p className="ajuda">Mostrando os 200 primeiros de {inteiro(lista.length)}. A lista completa vai no Excel.</p>}
-        </div>
-      </section>
-    </div>
   );
 }
 

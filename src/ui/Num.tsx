@@ -18,7 +18,8 @@ export function Num({ valor, formato }: { valor: number; formato: (n: number) =>
     const passo = (t: number) => {
       const k = Math.min(1, (t - t0) / 600);
       const e = 1 - Math.pow(1 - k, 3);
-      const v = de + (valor - de) * e;
+      const bruto = de + (valor - de) * e;
+      const v = Number.isInteger(valor) ? Math.round(bruto) : bruto;
       atual.current = v;
       setMostrado(k === 1 ? valor : v);
       if (k < 1) id = requestAnimationFrame(passo);

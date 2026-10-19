@@ -5,6 +5,7 @@ import { painel, REGRAS_PADRAO, simular, type Criterio, type Regras } from './co
 import { ORIGEM_PRECO, PRECOS_CISALP, QTD_TABELA_CISALP } from './core/precos';
 import { lerRelatorioPdf } from './lib/lerPdf';
 import { exportarExcel } from './lib/exportar';
+import { baixarBase, lerBase } from './lib/base';
 import { dataBR, inteiro, lerValor, pct, reais, valorParaCampo } from './lib/formato';
 import './App.css';
 
@@ -86,19 +87,28 @@ function Carregar({ relatorios, setRelatorios, onPronto }: { relatorios: Relator
     setErros([]);
     const novos = [...relatorios];
     const errosLocais: string[] = [];
-    const lista = [...files].filter((f) => f.name.toLowerCase().endsWith('.pdf'));
+    const lista = [...files].filter((f) => /\.(pdf|xlsx)$/i.test(f.name));
+    const adicionar = (r: Relatorio) => {
+      // mesmo procedimento carregado de novo: substitui (evita contar duas vezes)
+      const j = novos.findIndex((x) => x.exame === r.exame);
+      if (j >= 0) novos[j] = r;
+      else novos.push(r);
+    };
     for (let i = 0; i < lista.length; i++) {
       const f = lista[i];
       try {
+        if (/\.xlsx$/i.test(f.name)) {
+          setStatus(`Abrindo base ${f.name}…`);
+          await new Promise((ok) => setTimeout(ok, 30)); // deixa a tela mostrar o status
+          lerBase(await f.arrayBuffer()).forEach(adicionar);
+          continue;
+        }
         const r = await lerRelatorioPdf(f, (p, t) => setStatus(`Lendo ${i + 1} de ${lista.length}: ${f.name} — página ${p} de ${t}`));
         if (!r.linhas.length) {
           errosLocais.push(`${f.name}: não encontrei pacientes. É o relatório "Pacientes na Fila Aguardando Agendamento"?`);
           continue;
         }
-        // mesmo procedimento carregado de novo: substitui (evita contar duas vezes)
-        const j = novos.findIndex((x) => x.exame === r.exame);
-        if (j >= 0) novos[j] = r;
-        else novos.push(r);
+        adicionar(r);
       } catch (e) {
         errosLocais.push(`${f.name}: erro ao ler (${(e as Error).message})`);
       }
@@ -117,9 +127,21 @@ function Carregar({ relatorios, setRelatorios, onPronto }: { relatorios: Relator
         Use os PDFs <strong>"Pacientes na Fila Aguardando Agendamento"</strong>, um por exame. Pode selecionar todos de uma vez. Se o mesmo exame vier
         repetido, só a última versão é usada.
       </p>
+      <p className="ajuda">
+        Já tem a <strong>base consolidada</strong> (.xlsx salva por este app)? Escolha ela aqui: abre em segundos, sem reler os PDFs.
+      </p>
       <label className={`drop ${lendo ? 'ocupado' : ''}`}>
-        <input type="file" accept="application/pdf" multiple disabled={lendo} onChange={(e) => ler(e.target.files)} />
-        {lendo ? status || 'Abrindo…' : 'Clique para escolher os PDFs'}
+        <input
+          type="file"
+          accept="application/pdf,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          multiple
+          disabled={lendo}
+          onChange={(e) => {
+            ler(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        {lendo ? status || 'Abrindo…' : 'Clique para escolher os PDFs ou a base (.xlsx)'}
       </label>
       {erros.map((e) => (
         <p key={e} className="alerta">{e}</p>
@@ -154,6 +176,9 @@ function Carregar({ relatorios, setRelatorios, onPronto }: { relatorios: Relator
           )}
           <div className="acoes">
             <button className="primario" onClick={onPronto} disabled={lendo}>Ver panorama</button>
+            <button onClick={() => baixarBase(relatorios)} disabled={lendo} title="Um Excel com todas as listas lidas, para abrir rápido da próxima vez">
+              Salvar base consolidada
+            </button>
             <button onClick={() => setRelatorios([])} disabled={lendo}>Limpar tudo</button>
           </div>
         </>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Relatorio } from './core/parseRelatorio';
 import { agruparPacientes, type Precos } from './core/pacientes';
 import { painel, REGRAS_PADRAO, simular, type Criterio, type Regras } from './core/simulacao';
@@ -6,6 +6,8 @@ import { ORIGEM_PRECO, PRECOS_CISALP, QTD_TABELA_CISALP } from './core/precos';
 import { lerRelatorioPdf } from './lib/lerPdf';
 import { exportarExcel } from './lib/exportar';
 import { baixarBase, lerBase } from './lib/base';
+import { Graficos } from './ui/Graficos';
+import { Num } from './ui/Num';
 import { dataBR, inteiro, lerValor, pct, reais, valorParaCampo } from './lib/formato';
 import './App.css';
 
@@ -38,15 +40,30 @@ export default function App() {
     salvarPrecos(p);
   };
 
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [aba]);
+
   const pacientes = useMemo(() => agruparPacientes(relatorios.flatMap((r) => r.linhas)), [relatorios]);
   const temDados = pacientes.length > 0;
 
   return (
     <div className="app">
       <header className="topo">
-        <div>
-          <h1>Orçamento da fila de exames</h1>
-          <p className="sub">Secretaria Municipal de Saúde de Uberaba · Fila Eletrônica de exames laboratoriais</p>
+       <div className="topo-in">
+        <div className="marca">
+          <div className="selo" aria-hidden>
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3c-3.2 4.6-5.5 7.4-5.5 10.2a5.5 5.5 0 0 0 11 0C17.5 10.4 15.2 7.6 12 3z" fill="#fff" />
+              <path d="M9.5 14.5h5" stroke="#c39226" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <h1>Orçamento da fila de exames</h1>
+            <p className="sub">
+              Secretaria Municipal de Saúde de <b>Uberaba</b> · Fila Eletrônica de exames laboratoriais
+            </p>
+          </div>
         </div>
         <nav>
           {(
@@ -62,8 +79,9 @@ export default function App() {
             </button>
           ))}
         </nav>
+       </div>
       </header>
-      <main>
+      <main key={aba} className="entra">
         {aba === 'carregar' && <Carregar relatorios={relatorios} setRelatorios={setRelatorios} onPronto={() => setAba('panorama')} />}
         {aba === 'panorama' && temDados && <Panorama relatorios={relatorios} pacientes={pacientes} precos={precos} />}
         {aba === 'simulador' && temDados && <Simulador pacientes={pacientes} precos={precos} />}
@@ -78,6 +96,7 @@ export default function App() {
 
 function Carregar({ relatorios, setRelatorios, onPronto }: { relatorios: Relatorio[]; setRelatorios: (r: Relatorio[]) => void; onPronto: () => void }) {
   const [status, setStatus] = useState<string>('');
+  const [progresso, setProgresso] = useState(0);
   const [lendo, setLendo] = useState(false);
   const [erros, setErros] = useState<string[]>([]);
 
@@ -99,11 +118,15 @@ function Carregar({ relatorios, setRelatorios, onPronto }: { relatorios: Relator
       try {
         if (/\.xlsx$/i.test(f.name)) {
           setStatus(`Abrindo base ${f.name}…`);
+          setProgresso((i + 0.5) / lista.length);
           await new Promise((ok) => setTimeout(ok, 30)); // deixa a tela mostrar o status
           lerBase(await f.arrayBuffer()).forEach(adicionar);
           continue;
         }
-        const r = await lerRelatorioPdf(f, (p, t) => setStatus(`Lendo ${i + 1} de ${lista.length}: ${f.name} — página ${p} de ${t}`));
+        const r = await lerRelatorioPdf(f, (p, t) => {
+          setStatus(`Lendo ${i + 1} de ${lista.length}: ${f.name} — página ${p} de ${t}`);
+          setProgresso((i + p / t) / lista.length);
+        });
         if (!r.linhas.length) {
           errosLocais.push(`${f.name}: não encontrei pacientes. É o relatório "Pacientes na Fila Aguardando Agendamento"?`);
           continue;
@@ -116,6 +139,7 @@ function Carregar({ relatorios, setRelatorios, onPronto }: { relatorios: Relator
     setRelatorios(novos);
     setErros(errosLocais);
     setStatus('');
+    setProgresso(0);
     setLendo(false);
   }
 
@@ -141,7 +165,18 @@ function Carregar({ relatorios, setRelatorios, onPronto }: { relatorios: Relator
             e.target.value = '';
           }}
         />
-        {lendo ? status || 'Abrindo…' : 'Clique para escolher os PDFs ou a base (.xlsx)'}
+        {lendo ? (
+          <>
+            <span>{status || 'Abrindo…'}</span>
+            <div className="progresso"><div style={{ width: `${Math.round(progresso * 100)}%` }} /></div>
+            <small>{Math.round(progresso * 100)}%</small>
+          </>
+        ) : (
+          <>
+            <span>Clique para escolher os PDFs ou a base (.xlsx)</span>
+            <small>Pode selecionar vários arquivos de uma vez</small>
+          </>
+        )}
       </label>
       {erros.map((e) => (
         <p key={e} className="alerta">{e}</p>
@@ -223,9 +258,9 @@ function Panorama({ relatorios, pacientes, precos }: { relatorios: Relatorio[]; 
   return (
     <>
       <section className="kpis">
-        <div className="kpi"><span>Pacientes aguardando</span><strong>{inteiro(pacientes.length)}</strong><small>pessoas diferentes, por prontuário</small></div>
-        <div className="kpi"><span>Exames aguardando</span><strong>{inteiro(totalExames)}</strong><small>{relatorios.length} tipos de exame</small></div>
-        <div className="kpi destaque"><span>Custo para zerar a fila</span><strong>{reais(custoTotal)}</strong><small>{semPreco.length ? `sem valor: ${semPreco.join(', ')}` : 'com os valores da aba Valores'}</small></div>
+        <div className="kpi"><span>Pacientes aguardando</span><strong><Num valor={pacientes.length} formato={inteiro} /></strong><small>pessoas diferentes, por prontuário</small></div>
+        <div className="kpi"><span>Exames aguardando</span><strong><Num valor={totalExames} formato={inteiro} /></strong><small>{relatorios.length} tipos de exame</small></div>
+        <div className="kpi destaque"><span>Custo para zerar a fila</span><strong><Num valor={custoTotal} formato={reais} /></strong><small>{semPreco.length ? `sem valor: ${semPreco.join(', ')}` : 'com os valores da aba Valores'}</small></div>
         <div className="kpi"><span>Inclusão mais antiga</span><strong>{dataBR(meses[0]?.[0] + '-01').slice(3)}</strong><small>relatórios de {geradoEm}</small></div>
       </section>
 
@@ -485,28 +520,44 @@ function Simulador({ pacientes, precos }: { pacientes: ReturnType<typeof agrupar
         <div className="kpis">
           <div className="kpi destaque">
             <span>Contemplados</span>
-            <strong>{regras.orcamento === null ? '—' : inteiro(r.contemplados.length)}</strong>
-            <small>{regras.orcamento === null ? 'digite o orçamento' : reais(r.custoContemplados)}</small>
+            <strong>{semOrcamento ? '—' : <Num valor={r.contemplados.length} formato={inteiro} />}</strong>
+            <small>
+              {semOrcamento ? 'digite o orçamento' : `${reais(r.custoContemplados)} · ${pct(r.custoContemplados, regras.orcamento ?? 0)} do orçamento`}
+            </small>
           </div>
-          <div className="kpi">
-            <span>Sobra</span>
-            <strong>{reais(r.sobra)}</strong>
-            <small>{regras.orcamento !== null ? `${pct(r.custoContemplados, regras.orcamento)} do orçamento usado` : ''}</small>
-          </div>
+          {(() => {
+            const saldo = semOrcamento ? null : (regras.orcamento as number) - (r.custoContemplados + r.custoNaoContemplados);
+            const falta = saldo !== null && saldo < 0;
+            return (
+              <div className={`kpi ${falta ? 'kpi-falta' : saldo !== null ? 'kpi-sobra' : ''}`}>
+                <span>{saldo === null ? 'Saldo' : falta ? 'Falta para atender todos os elegíveis' : 'Sobra após atender todos os elegíveis'}</span>
+                <strong>{saldo === null ? '—' : <>{falta ? '− ' : ''}<Num valor={Math.abs(saldo)} formato={reais} /></>}</strong>
+                <small>{saldo === null ? 'orçamento − custo dos elegíveis' : `orçamento ${reais(regras.orcamento)} − custo ${reais(r.custoContemplados + r.custoNaoContemplados)}`}</small>
+              </div>
+            );
+          })()}
           <div className="kpi">
             <span>Elegíveis não contemplados</span>
-            <strong>{semOrcamento ? '—' : inteiro(r.naoContemplados.length)}</strong>
-            <small>{semOrcamento ? `custo de todos os elegíveis: ${reais(r.custoNaoContemplados)}` : `faltaria ${reais(r.custoNaoContemplados)}`}</small>
+            <strong>{semOrcamento ? '—' : <Num valor={r.naoContemplados.length} formato={inteiro} />}</strong>
+            <small>
+              {semOrcamento
+                ? `custo de todos os elegíveis: ${reais(r.custoNaoContemplados)}`
+                : r.naoContemplados.length
+                  ? `custariam ${reais(r.custoNaoContemplados)}`
+                  : `todos atendidos · sobra não usada ${reais(r.sobra)}`}
+            </small>
           </div>
           <div className="kpi">
             <span>Elegíveis</span>
-            <strong>{inteiro(r.elegiveis)}</strong>
+            <strong><Num valor={r.elegiveis} formato={inteiro} /></strong>
             <small>de {inteiro(pacientes.length)} na fila</small>
           </div>
         </div>
         <p className="funil">
           {inteiro(r.foraPorExame)} ficam de fora porque têm exame não marcado · {inteiro(r.foraPorFiltro)} pelos filtros
         </p>
+
+        <Graficos r={r} orcamento={regras.orcamento} />
 
         <div className="card">
           <div className="lista-topo">

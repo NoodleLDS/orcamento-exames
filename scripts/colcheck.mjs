@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const p = await b.newPage({ viewport: { width: 1500, height: 900 } });
+await p.goto('http://localhost:4173/');
+await p.setInputFiles('input[type=file]', process.argv[2]);
+await p.waitForSelector('button.primario:has-text("Ver panorama"):not([disabled])');
+await p.click('nav >> text=Simulador');
+await p.fill('.orc input', '1 milhão');
+const cols = await p.$$eval('.g-coluna', (cs) => cs.slice(-4).map((c) => ({ t: c.title, x: Math.round(c.getBoundingClientRect().x), segs: [...c.querySelectorAll('.g-seg')].map((s) => Math.round(s.getBoundingClientRect().height)) })));
+console.log(cols);
+await b.close();

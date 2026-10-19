@@ -1,0 +1,26 @@
+// Captura telas para revisão visual. Uso: node scripts/shot.mjs <base.xlsx> <saida-dir>
+import { chromium } from 'playwright';
+const [base, out] = process.argv.slice(2);
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+const erros = []; p.on('pageerror', (e) => erros.push(e.message));
+await p.goto('http://localhost:4173/');
+await p.waitForTimeout(800);
+await p.screenshot({ path: `${out}/v-arquivos.png` });
+await p.setInputFiles('input[type=file]', base);
+await p.waitForSelector('button.primario:has-text("Ver panorama"):not([disabled])');
+await p.click('text=Ver panorama');
+await p.waitForTimeout(1200);
+await p.screenshot({ path: `${out}/v-panorama.png` });
+await p.click('nav >> text=Simulador');
+await p.fill('.orc input', '1 milhão');
+await p.waitForTimeout(1300);
+await p.screenshot({ path: `${out}/v-sim-topo.png` });
+const g = await p.locator('.graficos').boundingBox();
+await p.screenshot({ path: `${out}/v-sim-graf.png`, fullPage: true, clip: { x: g.x - 10, y: g.y - 10, width: g.width + 20, height: Math.min(g.height, 760) } });
+console.log(await p.$$eval('.g-coluna', (cs) => cs.slice(-4).map((c) => c.title + ' | x=' + Math.round(c.getBoundingClientRect().x) + ' | alturas=' + [...c.querySelectorAll('.g-seg')].map((s) => Math.round(s.getBoundingClientRect().height)))));
+await p.setViewportSize({ width: 390, height: 844 });
+await p.waitForTimeout(400);
+await p.screenshot({ path: `${out}/v-mobile.png` });
+console.log('largura celular', await p.evaluate(() => document.documentElement.scrollWidth), 'erros', erros);
+await b.close();

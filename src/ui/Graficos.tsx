@@ -2,8 +2,8 @@ import type { Resultado } from '../core/simulacao';
 import { dataBR, inteiro, pct, reais } from '../lib/formato';
 
 // Duas séries, cores validadas (lightness, chroma, daltonismo, contraste) no fundo claro.
-const COR_SIM = '#a8203a'; // contemplados (carmim)
-const COR_NAO = '#c39226'; // não contemplados (ouro)
+const COR_SIM = '#2a4bab'; // contemplados (azul)
+const COR_NAO = '#d0573a'; // não contemplados (vermelho)
 
 type Par = { rotulo: string; sim: number; nao: number };
 

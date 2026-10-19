@@ -55,7 +55,7 @@ export default function App() {
           <div className="selo" aria-hidden>
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M12 3c-3.2 4.6-5.5 7.4-5.5 10.2a5.5 5.5 0 0 0 11 0C17.5 10.4 15.2 7.6 12 3z" fill="#fff" />
-              <path d="M9.5 14.5h5" stroke="#c39226" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M9.5 14.5h5" stroke="#f2cf5b" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </div>
           <div>

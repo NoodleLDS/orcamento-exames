@@ -49,6 +49,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className="marca-dagua" aria-hidden style={{ backgroundImage: `url(${import.meta.env.BASE_URL}brasao-marca.png)` }} />
       <header className="topo">
        <div className="topo-in">
         <div className="marca">
@@ -87,7 +88,10 @@ export default function App() {
         {aba === 'simulador' && temDados && <Simulador pacientes={pacientes} precos={precos} />}
         {aba === 'valores' && <Valores precos={precos} setPrecos={setPrecos} exames={[...new Set(pacientes.flatMap((p) => p.exames))]} />}
       </main>
-      <footer>Os arquivos são lidos só neste computador. Nenhum dado de paciente é enviado ou guardado.</footer>
+      <footer>
+        <p>Os arquivos são lidos só neste computador. Nenhum dado de paciente é enviado ou guardado.</p>
+        <p className="aviso-oficial">Ferramenta de apoio à gestão da Fila Eletrônica · Secretaria Municipal de Saúde de Uberaba. Não é um canal oficial da Prefeitura.</p>
+      </footer>
     </div>
   );
 }

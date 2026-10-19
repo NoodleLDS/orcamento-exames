@@ -80,8 +80,16 @@ nav button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.18); transfo
 nav button.ativa, nav button.ativa:hover:not(:disabled) { background: #fff; color: var(--marinho); box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.35); }
 nav button:disabled { opacity: 0.4; cursor: default; }
 
-main { flex: 1; padding: 26px 28px; max-width: 1400px; width: 100%; margin: 0 auto; }
+.marca-dagua {
+  position: fixed; right: -60px; bottom: -40px; width: min(560px, 70vw); aspect-ratio: 900 / 828; z-index: 0; pointer-events: none;
+  background: no-repeat center / contain; opacity: 0.055; animation: surgir 1.4s var(--mola) both;
+}
+@keyframes surgir { from { opacity: 0; transform: translateY(30px) scale(0.96); } }
+.topo, footer { position: relative; z-index: 1; }
+main { position: relative; z-index: 1; flex: 1; padding: 26px 28px; max-width: 1400px; width: 100%; margin: 0 auto; }
 footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 18px; }
+footer p { margin: 2px 0; }
+.aviso-oficial { font-size: 0.74rem; opacity: 0.85; }
 footer::before { content: ''; display: block; width: 40px; height: 2px; background: var(--ouro); margin: 0 auto 10px; border-radius: 2px; }
 
 /* ---------- Movimento ---------- */
@@ -275,4 +283,5 @@ input:focus, select:focus { outline: none; border-color: var(--marinho); box-sha
   .card { padding: 14px 12px; }
   .campo-orc { margin: 0 -12px; padding: 12px; }
   .g-hlinha { grid-template-columns: 100px 1fr 90px; }
+  .marca-dagua { right: -80px; bottom: -30px; opacity: 0.045; }
 }

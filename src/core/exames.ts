@@ -39,6 +39,12 @@ const NOMES_CURTOS: [RegExp, string][] = [
   [/caracteres fisicos, elementos/, 'Urina tipo I (EAS)'],
   [/potassio/, 'Potássio'],
   [/sodio/, 'Sódio'],
+  [/foliculo-?estimulante|\bfsh\b/, 'FSH'],
+  [/antibiograma/, 'Antibiograma'],
+  [/creatinofosfoquinase|\bcpk\b/, 'CPK'],
+  [/cultura de bacterias/, 'Cultura de bactérias'],
+  [/microalbumina/, 'Microalbumina'],
+  [/antigeno prostatico|\bpsa\b/, 'PSA'],
 ];
 
 export function nomeCurto(procedimento: string): string {

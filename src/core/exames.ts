@@ -10,6 +10,8 @@ export const normalizar = (s: string) =>
     .trim();
 
 const NOMES_CURTOS: [RegExp, string][] = [
+  // Antes de /creatinina/, senão o clearance vira o mesmo exame da creatinina
+  [/clearance de creatinina/, 'Clearance de creatinina'],
   [/hemograma/, 'Hemograma'],
   [/hemoglobina glicosilada|hemoglobina glicada/, 'Hemoglobina glicada'],
   [/curva glicemica|tolerancia a glicose|sobrecarga de glicose/, 'Curva glicêmica'],
@@ -45,6 +47,25 @@ const NOMES_CURTOS: [RegExp, string][] = [
   [/cultura de bacterias/, 'Cultura de bactérias'],
   [/microalbumina/, 'Microalbumina'],
   [/antigeno prostatico|\bpsa\b/, 'PSA'],
+  [/luteinizante|\blh\b/, 'LH'],
+  [/amilase/, 'Amilase'],
+  [/cortisol/, 'Cortisol'],
+  [/morfologica de fungos/, 'Cultura de fungos'],
+  [/quantitativa de proteina c reativa/, 'PCR quantitativa'],
+  [/proteina c reativa/, 'PCR'],
+  [/fator reumatoide/, 'Fator reumatoide'],
+  [/fosfatase alcalina/, 'Fosfatase alcalina'],
+  [/fosforo/, 'Fósforo'],
+  [/gama-glutamil|gama gt/, 'Gama GT'],
+  [/larvas nas fezes/, 'Larvas nas fezes'],
+  [/magnesio/, 'Magnésio'],
+  [/paratormonio|\bpth\b/, 'Paratormônio (PTH)'],
+  [/peptideo c/, 'Peptídeo C'],
+  [/prolactina/, 'Prolactina'],
+  [/proteinas totais/, 'Proteínas totais e frações'],
+  [/testosterona livre/, 'Testosterona livre'],
+  [/testosterona/, 'Testosterona'],
+  [/insulina/, 'Insulina'],
 ];
 
 export function nomeCurto(procedimento: string): string {

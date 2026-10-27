@@ -66,6 +66,7 @@ const NOMES_CURTOS: [RegExp, string][] = [
   [/testosterona livre/, 'Testosterona livre'],
   [/testosterona/, 'Testosterona'],
   [/insulina/, 'Insulina'],
+  [/hemossedimentacao|\bvhs\b/, 'VHS'],
 ];
 
 export function nomeCurto(procedimento: string): string {

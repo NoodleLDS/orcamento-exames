@@ -31,13 +31,33 @@ export const PRECOS_CISALP: Record<string, number> = {
   T3: 17.42, // 02.02.06.039-0 · SIGTAP R$ 8,71
   T4: 17.52, // 02.02.06.037-3 · SIGTAP R$ 8,76
   'T4 livre': 23.2, // 02.02.06.038-1 · SIGTAP R$ 11,60
-  // Exames incluídos em 26/10/2026 (SIGTAP; PSA conferido na competência 10/2026)
-  FSH: 15.78, // 02.02.06.023-3 · SIGTAP R$ 7,89
-  Antibiograma: 9.96, // 02.02.08.001-3 · SIGTAP R$ 4,98
-  CPK: 7.36, // 02.02.01.032-5 · SIGTAP R$ 3,68
-  'Cultura de bactérias': 11.24, // 02.02.08.008-0 · SIGTAP R$ 5,62
-  Microalbumina: 16.24, // 02.02.05.009-2 · SIGTAP R$ 8,12
-  PSA: 32.84, // 02.02.03.010-5 · SIGTAP R$ 16,42
+  // Exames incluídos em 26 e 27/10/2026 — tabela CISALP do laboratório SALK (27/10/2026)
+  FSH: 15.6,
+  CPK: 12.0,
+  // Cultura + antibiograma são um pacote de R$ 12,00: o valor fica na cultura e o antibiograma sai a zero
+  'Cultura de bactérias': 12.0,
+  Antibiograma: 0,
+  Microalbumina: 22.56,
+  PSA: 22.56,
+  Prolactina: 20.4,
+  LH: 15.12,
+  Testosterona: 25.2,
+  'Testosterona livre': 28.2,
+  Cortisol: 18.0,
+  'PCR quantitativa': 16.8,
+  PCR: 5.7,
+  'Fator reumatoide': 4.8,
+  'Gama GT': 4.8,
+  'Fosfatase alcalina': 4.32,
+  Fósforo: 3.36,
+  Magnésio: 3.84,
+  'Proteínas totais e frações': 3.6,
+  Amilase: 4.07,
+  Insulina: 13.2,
+  'Paratormônio (PTH)': 17.0,
+  'Peptídeo C': 27.74,
+  'Clearance de creatinina': 6.0,
+  VHS: 2.4, // relatório da fila ainda não carregado
 };
 
 /** Origem de cada valor padrão, para mostrar na tela. */
@@ -50,12 +70,8 @@ export const ORIGEM_PRECO: Record<string, string> = {
   T3: 'SIGTAP R$ 8,71 × 2',
   T4: 'SIGTAP R$ 8,76 × 2',
   'T4 livre': 'SIGTAP R$ 11,60 × 2',
-  FSH: 'SIGTAP R$ 7,89 × 2',
-  Antibiograma: 'SIGTAP R$ 4,98 × 2',
-  CPK: 'SIGTAP R$ 3,68 × 2',
-  'Cultura de bactérias': 'SIGTAP R$ 5,62 × 2',
-  Microalbumina: 'SIGTAP R$ 8,12 × 2',
-  PSA: 'SIGTAP R$ 16,42 × 2',
+  'Cultura de bactérias': 'CISALP — pacote com antibiograma',
+  Antibiograma: 'Incluído no pacote da cultura',
 };
 
 // Quantidades que estavam na tabela da Célia, para comparar com o que veio nos PDFs.

@@ -24,12 +24,8 @@ export const PRECOS_CISALP: Record<string, number> = {
   'Vitamina D': 17.56,
   // Sem valor na tabela CISALP: regra definida = valor SIGTAP × 2 (SIGTAP competência 04/2026)
   Folato: 31.3, // 02.02.01.040-6 · SIGTAP R$ 15,65
-  Ferritina: 31.18, // 02.02.01.038-4 · SIGTAP R$ 15,59
-  Transferrina: 8.24, // 02.02.01.066-0 · SIGTAP R$ 4,12
   'Capacidade de fixação do ferro': 4.02, // 02.02.01.002-3 · SIGTAP R$ 2,01
   'Urina tipo I (EAS)': 7.4, // 02.02.05.001-7 · SIGTAP R$ 3,70
-  T3: 17.42, // 02.02.06.039-0 · SIGTAP R$ 8,71
-  T4: 17.52, // 02.02.06.037-3 · SIGTAP R$ 8,76
   'T4 livre': 23.2, // 02.02.06.038-1 · SIGTAP R$ 11,60
   // Exames incluídos em 26 e 27/10/2026 — tabela CISALP do laboratório SALK (27/10/2026)
   FSH: 15.6,
@@ -57,18 +53,19 @@ export const PRECOS_CISALP: Record<string, number> = {
   'Paratormônio (PTH)': 17.0,
   'Peptídeo C': 27.74,
   'Clearance de creatinina': 6.0,
-  VHS: 2.4, // relatório da fila ainda não carregado
+  VHS: 2.4,
+  // Valores CISALP recebidos em 28/10/2026 (antes eram SIGTAP × 2)
+  Ferritina: 23.0,
+  T3: 20.0,
+  T4: 15.0,
+  Transferrina: 14.4,
 };
 
 /** Origem de cada valor padrão, para mostrar na tela. */
 export const ORIGEM_PRECO: Record<string, string> = {
   Folato: 'SIGTAP R$ 15,65 × 2',
-  Ferritina: 'SIGTAP R$ 15,59 × 2',
-  Transferrina: 'SIGTAP R$ 4,12 × 2',
   'Capacidade de fixação do ferro': 'SIGTAP R$ 2,01 × 2',
   'Urina tipo I (EAS)': 'SIGTAP R$ 3,70 × 2',
-  T3: 'SIGTAP R$ 8,71 × 2',
-  T4: 'SIGTAP R$ 8,76 × 2',
   'T4 livre': 'SIGTAP R$ 11,60 × 2',
   'Cultura de bactérias': 'CISALP — pacote com antibiograma',
   Antibiograma: 'Incluído no pacote da cultura',
